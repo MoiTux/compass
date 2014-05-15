@@ -3,6 +3,7 @@
 import os
 import re
 import sys
+import subprocess
 
 from itertools import groupby
 from optparse import OptionParser
@@ -31,6 +32,17 @@ class MigrationList(object):
     manage_cmd = 'python manage.py'
 
     def __init__(self, items=None, options=None):
+        proc = subprocess.Popen(['git', 'rev-parse','--show-toplevel'],
+                                stdout=subprocess.PIPE)
+        cmd = proc.communicate()[0].strip()
+        pjt_name = os.path.basename(cmd)
+        cmd = '%(path)s/%(pjt_name)s/bin/cmd_%(pjt_name)s.py' % {
+            'path': cmd,
+            'pjt_name': pjt_name,
+        }
+        if os.access(cmd, os.X_OK):
+            self.manage_cmd = cmd
+
         self.items = []
         self.options = options
 
