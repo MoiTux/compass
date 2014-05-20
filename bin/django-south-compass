@@ -29,7 +29,7 @@ def display_direction(direction):
 
 class MigrationList(object):
 
-    manage_cmd = 'python manage.py'
+    manage_cmd = None
 
     def __init__(self, items=None, options=None):
         proc = subprocess.Popen(['git', 'rev-parse','--show-toplevel'],
@@ -40,9 +40,9 @@ class MigrationList(object):
             'path': cmd,
             'pjt_name': pjt_name,
         }
-        if os.access(cmd, os.X_OK):
-            self.manage_cmd = cmd
+        self.manage_cmd = 'python %s' % cmd
 
+        print self.manage_cmd
         self.items = []
         self.options = options
 
