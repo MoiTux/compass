@@ -42,7 +42,6 @@ class MigrationList(object):
         }
         self.manage_cmd = 'python %s' % cmd
 
-        print self.manage_cmd
         self.items = []
         self.options = options
 
