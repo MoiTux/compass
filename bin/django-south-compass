@@ -29,13 +29,19 @@ def display_direction(direction):
 
 class MigrationList(object):
 
-    manage_cmd = None  # 'python manage.py'
+    manage_cmd = 'python manage.py'
 
     def __init__(self, items=None, options=None):
         proc = subprocess.Popen(['git', 'rev-parse','--show-toplevel'],
                                 stdout=subprocess.PIPE)
         cmd = proc.communicate()[0].strip()
-        self.manage_cmd = os.path.basename(cmd)
+        pjt_name = os.path.basename(cmd)
+        cmd = '%(path)s/%(pjt_name)s/bin/cmd_%(pjt_name)s.py' % {
+            'path': cmd,
+            'pjt_name': pjt_name,
+        }
+        if os.access(cmd, os.X_OK):
+            self.manage_cmd = cmd
 
         self.items = []
         self.options = options
@@ -90,6 +96,7 @@ class Migration(object):
         cmd = '%s migrate %s %s' % (manage_cmd, self.app, self.migration)
         if not options.no_merge:
             cmd += " --merge"
+        print cmd
         os.system(cmd)
         if self.direction == 'B':
             os.system('git reset HEAD %s %s%s/migrations' % (self.old, self.prefix, self.app))
