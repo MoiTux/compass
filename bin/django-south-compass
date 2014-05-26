@@ -3,7 +3,6 @@
 import os
 import re
 import sys
-import subprocess
 
 from itertools import groupby
 from optparse import OptionParser
@@ -20,6 +19,8 @@ DIRECTIONS = {
 }
 
 CMD, _ = os.path.splitext(os.path.basename(__file__))
+ROOT = os.popen('git rev-parse --show-toplevel').readline().strip()
+
 
 def display_status(status):
     return STATUSES.get(status)
@@ -32,12 +33,9 @@ class MigrationList(object):
     manage_cmd = None
 
     def __init__(self, items=None, options=None):
-        proc = subprocess.Popen(['git', 'rev-parse','--show-toplevel'],
-                                stdout=subprocess.PIPE)
-        cmd = proc.communicate()[0].strip()
-        pjt_name = os.path.basename(cmd)
+        pjt_name = os.path.basename(ROOT)
         cmd = '%(path)s/%(pjt_name)s/bin/cmd_%(pjt_name)s.py' % {
-            'path': cmd,
+            'path': ROOT,
             'pjt_name': pjt_name,
         }
         self.manage_cmd = 'python %s' % cmd
@@ -60,14 +58,20 @@ class MigrationList(object):
 
     def plan(self):
         self.items.sort(key=lambda x: (x.app, x.direction, x.migration))
-        # TODO: migrate to the last point of the group
+        tmp = []
         for key, group in groupby(self.items, lambda x: x.app):
+            done = False
             for item in group:
                 print item
+                if not done:
+                    tmp.append(item)
+                    done = True
+        self.items = tmp
 
     def migrate_all(self):
         for item in self.items:
             item.migrate(self.manage_cmd, self.options)
+
 
 class Migration(object):
 
@@ -85,29 +89,36 @@ class Migration(object):
             self.migration = str(int(migration.lstrip('0'))-1).zfill(4)
 
     def __str__(self):
-        return 'migrate %s %s to %s' % (self.app,
-                display_direction(self.direction),
-                self.migration)
+        return 'migrate %s %s to %s' % (
+            self.app,
+            display_direction(self.direction),
+            self.migration,
+        )
 
     def migrate(self, manage_cmd, options):
         if self.direction == 'B':
-            os.system('git checkout %s %s%s/migrations' % (self.old, self.prefix, self.app))
+            # will avoid error if 2 migrations have the same prefix
+            os.system('git ls-files | grep %s%s/migrations | xargs rm' % (
+                    self.prefix,
+                    self.app,
+            ))
+            os.system('git checkout %s %s%s/migrations' % (
+                    self.old,
+                    self.prefix,
+                    self.app,
+            ))
         cmd = '%s migrate %s %s' % (manage_cmd, self.app, self.migration)
-        if not options.no_merge:
-            cmd += " --merge"
-        print cmd
         os.system(cmd)
         if self.direction == 'B':
-            os.system('git reset HEAD %s %s%s/migrations' % (self.old, self.prefix, self.app))
-            os.system('git clean -f %s %s%s/migrations' % (self.old, self.prefix, self.app))
+            os.system('git reset --hard')
 
 
 def post_checkout(old, new, options):
 
     migrations = MigrationList(options=options)
-
     cmd = 'git diff --name-status %s %s | grep /migrations/' % (
         old, new)
+    has_forward = False
     for line in os.popen(cmd).readlines():
         status, filepath = line.split()
         # search for the migration number
@@ -117,15 +128,16 @@ def post_checkout(old, new, options):
             prefix = filepath.split(app)[0]
             if app and migration:
                 if status == 'D':
-                    direction = 'B'
+                    migration = Migration(app, migration, old,
+                                          direction='B', prefix=prefix)
+                    migrations.add(migration)
                 else:
-                    direction = 'F'
-                migration = Migration(app,
-                        migration, old, direction=direction, prefix=prefix)
-                migrations.add(migration)
-
+                    has_forward = True
     migrations.plan()
     migrations.migrate_all()
+    if has_forward:
+        os.system('%s migrate' % migrations.manage_cmd)
+
 
 def main():
 
