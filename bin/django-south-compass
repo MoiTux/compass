@@ -59,13 +59,8 @@ class MigrationList(object):
     def plan(self):
         self.items.sort(key=lambda x: (x.app, x.direction, x.migration))
         tmp = []
-        for key, group in groupby(self.items, lambda x: x.app):
-            done = False
-            for item in group:
-                print item
-                if not done:
-                    tmp.append(item)
-                    done = True
+        for _, group in groupby(self.items, lambda x: x.app):
+            tmp.append(group.next())
         self.items = tmp
 
     def migrate_all(self):
