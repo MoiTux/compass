@@ -156,6 +156,29 @@ def main():
             if old != new and flag == '1':
                 post_checkout(old, new, options)
         elif command == 'install':
+            opt = ''
+            if options.manage:
+                opt += ' --manage %s' % options.manage
+            if options.settings:
+                opt += ' --settings %s' % options.settings
+            if options.merge:
+                opt += ' --merge'
+            exist = False
+
+            cmd = textwrap.dedent("""\
+            %(header)s\
+
+            res=$(%(cmd)s 2>&1)
+            if [ $? -eq 0 ]; then
+              %(cmd)s post-checkout $@ %(option)s
+            else
+              echo Auto migration can\\'t be done
+            fi
+            """) % {
+                'header': '#!/bin/bash\n' if not exist else '',
+                'cmd': CMD,
+                'option': opt,
+            }
             cmd = '%s post-checkout $@' % CMD
             if options.manage:
                 cmd += ' --manage %s' % options.manage
@@ -164,8 +187,6 @@ def main():
             if options.no_merge:
                 cmd += ' --merge'
             f = file('.git/hooks/post-checkout', 'w')
-            f.write('#!/bin/bash\n')
-            f.write('\n')
             f.write(cmd)
             f.close()
             os.system('chmod +x .git/hooks/post-checkout')
