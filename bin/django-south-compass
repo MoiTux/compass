@@ -59,7 +59,7 @@ class MigrationList(object):
     def plan(self):
         self.items.sort(key=lambda x: (x.app, x.direction, x.migration))
         tmp = []
-        for _, group in groupby(self.items, lambda x: x.app):
+        for _, group in groupby(self.items, lambda x: (x.app, x.direction)):
             tmp.append(group.next())
         self.items = tmp
 
@@ -102,17 +102,17 @@ class Migration(object):
                 self.prefix,
                 self.app,
             ))
-        cmd = '%s migrate %s %s' % (manage_cmd, self.app, self.migration)
-        os.system(cmd)
-        if self.direction == 'B':
+            os.system('%s migrate %s %s' % (manage_cmd, self.app,
+                                            self.migration))
             os.system('git reset --hard')
+        else:
+            os.system('%s migrate %s ' % (manage_cmd, self.app))
 
 
 def post_checkout(old, new, options):
 
     migrations = MigrationList(options=options)
     cmd = 'git diff --name-status %s %s | grep /migrations/' % (old, new)
-    has_forward = False
     for line in os.popen(cmd).readlines():
         status, filepath = line.split()
         # search for the migration number
@@ -124,13 +124,12 @@ def post_checkout(old, new, options):
                 if status == 'D':
                     migration = Migration(app, migration, old,
                                           direction='B', prefix=prefix)
-                    migrations.add(migration)
                 else:
-                    has_forward = True
+                    migration = Migration(app, migration, old,
+                                          direction='F', prefix=prefix)
+                migrations.add(migration)
     migrations.plan()
     migrations.migrate_all()
-    if has_forward:
-        os.system('%s migrate' % migrations.manage_cmd)
 
 
 def main():
