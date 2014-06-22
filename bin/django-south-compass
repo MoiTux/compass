@@ -26,8 +26,10 @@ ROOT = os.popen('git rev-parse --show-toplevel').readline().strip()
 def display_status(status):
     return STATUSES.get(status)
 
+
 def display_direction(direction):
     return DIRECTIONS.get(direction)
+
 
 class MigrationList(object):
 
@@ -40,12 +42,9 @@ class MigrationList(object):
             'pjt_name': pjt_name,
         }
         self.manage_cmd = 'python %s' % cmd
-
-        self.items = []
+        self.items = items if items else []
         self.options = options
 
-        if items:
-            self.items = items
         if self.options.manage:
             self.manage_cmd = 'python %s' % self.options.manage
         if self.options.settings:
@@ -71,7 +70,7 @@ class MigrationList(object):
 
 class Migration(object):
 
-    def __init__(self, app, migration, old, direction="F", prefix=''):
+    def __init__(self, app, migration, old, direction='F', prefix=''):
         if not direction in DIRECTIONS.keys():
             raise ValueError('Invalid value for direction')
 
@@ -95,13 +94,13 @@ class Migration(object):
         if self.direction == 'B':
             # will avoid error if 2 migrations have the same prefix
             os.system('git ls-files | grep %s%s/migrations | xargs rm' % (
-                    self.prefix,
-                    self.app,
+                self.prefix,
+                self.app,
             ))
             os.system('git checkout %s %s%s/migrations' % (
-                    self.old,
-                    self.prefix,
-                    self.app,
+                self.old,
+                self.prefix,
+                self.app,
             ))
         cmd = '%s migrate %s %s' % (manage_cmd, self.app, self.migration)
         os.system(cmd)
@@ -112,8 +111,7 @@ class Migration(object):
 def post_checkout(old, new, options):
 
     migrations = MigrationList(options=options)
-    cmd = 'git diff --name-status %s %s | grep /migrations/' % (
-        old, new)
+    cmd = 'git diff --name-status %s %s | grep /migrations/' % (old, new)
     has_forward = False
     for line in os.popen(cmd).readlines():
         status, filepath = line.split()
@@ -139,9 +137,9 @@ def main():
 
     parser = OptionParser()
 
-    parser.add_option("-m", "--manage")
-    parser.add_option("-M", "--merge", action="store_true")
-    parser.add_option("-s", "--settings")
+    parser.add_option('-m', '--manage')
+    parser.add_option('-M', '--merge', action='store_true')
+    parser.add_option('-s', '--settings')
 
     options, args = parser.parse_args()
 
@@ -170,7 +168,7 @@ def main():
             f.close()
             os.system('chmod +x .git/hooks/post-checkout')
             print textwrap.dedent("""\
-            Congrats! Django south compass has been installed to .git/hooks/post-checkout
+            Congrats! Django south compass has been installed
 
             Migrations added/deleted during checkout will now be automatically
             synced with the database.
