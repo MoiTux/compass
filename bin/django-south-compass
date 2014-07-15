@@ -92,6 +92,7 @@ class Migration(object):
 
     def migrate(self, manage_cmd, options):
         if self.direction == 'B':
+            # XXX FIX ME this won't work if modif are from different app
             # will avoid error if 2 migrations have the same prefix
             os.system('git ls-files | grep %s%s/migrations | xargs rm' % (
                 self.prefix,
