@@ -103,6 +103,10 @@ class Migration(object):
 
     def pre_migrate(self, manage_cmd, options):
         if self.direction == 'B':
+            os.system('git checkout %s %ssettings.py' % (
+                self.old,
+                self.prefix,
+            ))
             # XXX FIX ME this won't work if modif are from different app
             # will avoid error if 2 migrations have the same prefix
             os.system('git ls-files | grep %s%s/migrations | xargs rm' % (
