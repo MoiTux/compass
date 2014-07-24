@@ -68,9 +68,12 @@ class MigrationList(object):
             item.pre_migrate(self.manage_cmd, self.options)
         for item in self.items:
             item.migrate(self.manage_cmd, self.options)
+        Migration.reset()
 
 
 class Migration(object):
+
+    do_reset = False
 
     def __init__(self, app, migration, old, direction='F', prefix=''):
         if not direction in DIRECTIONS.keys():
@@ -92,6 +95,12 @@ class Migration(object):
             self.migration,
         )
 
+    @classmethod
+    def reset(cls):
+        if cls.do_reset:
+            os.system('git reset --hard')
+            cls.do_reset = False
+
     def pre_migrate(self, manage_cmd, options):
         if self.direction == 'B':
             # XXX FIX ME this won't work if modif are from different app
@@ -105,13 +114,14 @@ class Migration(object):
                 self.prefix,
                 self.app,
             ))
+            Migration.do_reset = True
 
     def migrate(self, manage_cmd, options):
         if self.direction == 'B':
             os.system('%s migrate %s %s' % (manage_cmd, self.app,
                                             self.migration))
         else:
-            os.system('git reset --hard')
+            Migration.reset()
             os.system('%s migrate %s ' % (manage_cmd, self.app))
 
 
