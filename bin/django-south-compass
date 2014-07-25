@@ -57,7 +57,7 @@ class MigrationList(object):
         self.items.remove(migration)
 
     def plan(self):
-        self.items.sort(key=lambda x: (x.app, x.direction, x.migration))
+        self.items.sort(key=lambda x: (x.direction, x.app, x.migration))
         tmp = []
         for _, group in groupby(self.items, lambda x: (x.direction, x.app)):
             tmp.append(group.next())
