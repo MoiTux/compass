@@ -151,6 +151,40 @@ def post_checkout(old, new, options):
     migrations.migrate_all()
 
 
+def rm_models(path):
+    with open(path, 'r+') as fd:
+        seek = 0
+        lines = fd.readlines()
+        for line in lines:
+            if seek >= 0:
+                seek += len(line)
+                if line == '    models = {\n':
+                    fd.seek(seek)
+                    fd.write('        # XXX remove for the review\n')
+                    seek = -1
+            elif line == '    }\n':
+                fd.write(line)
+                seek = -2
+            elif seek == -2:
+                fd.write(line)
+        fd.truncate()
+
+
+def review_dff(*commits):
+    head = os.popen('git rev-parse HEAD').read()
+    commits = ' '.join(commits)
+    cmd = 'git diff --name-status %s | grep /migrations/' % commits
+    migration_files = os.popen(cmd).readlines()
+    if migration_files:
+        for line in migration_files:
+            _, filepath = line.split()
+            rm_models(filepath)
+            os.system('git add %s' % filepath)
+        os.system('git commit -m "tmp commit for review diff"')
+        os.system('git diff %s' % commits)
+        os.popen('git reset --hard %s' % head)
+
+
 def main():
 
     parser = OptionParser()
@@ -163,21 +197,22 @@ def main():
 
     if len(args) >= 1:
         command = args[0]
-
         if command == 'post-checkout':
             old = args[1]
             new = args[2]
             flag = args[3]
-
             if old != new and flag == '1':
                 post_checkout(old, new, options)
+        elif command == 'review_dff':
+            args.pop(0)
+            review_dff(*args)
         elif command == 'install':
             cmd = '%s post-checkout $@' % CMD
             if options.manage:
                 cmd += ' --manage %s' % options.manage
             if options.settings:
                 cmd += ' --settings %s' % options.settings
-            if options.no_merge:
+            if options.merge:
                 cmd += ' --merge'
             f = file('.git/hooks/post-checkout', 'w')
             f.write('#!/bin/bash\n')
