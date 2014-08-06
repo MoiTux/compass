@@ -218,15 +218,24 @@ def main():
             f.write('#!/bin/bash\n')
             f.write('\n')
             f.write(cmd)
+            f.write('\n')
             f.close()
             os.system('chmod +x .git/hooks/post-checkout')
+            os.system('git config alias.rdiff "!django-south-compass '
+                      'review_dff"')
+            with open(os.path.expanduser('~/.bashrc'), 'a') as fd:
+                fd.write('\n# to add completion on git rdiff alias\n')
+                fd.write('_git_rdiff() { _git_diff; }\n')
             print textwrap.dedent("""\
             Congrats! Django south compass has been installed
 
             Migrations added/deleted during checkout will now be automatically
             synced with the database.
 
-            To uninstall, just edit or delete .git/hooks/post-checkout
+            To uninstall, just edit or delete:
+              .git/hooks/post-checkout
+              .git/config -> alias -> rdiff
+              ~/.bashrc fonction ->  _git_rdiff
             """)
         else:
             print 'Use `%s install` to install to current repository' % CMD
