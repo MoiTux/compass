@@ -207,18 +207,24 @@ def main():
             args.pop(0)
             review_dff(*args)
         elif command == 'install':
-            cmd = '%s post-checkout $@' % CMD
+            cmd = '  %s post-checkout $@' % CMD
             if options.manage:
                 cmd += ' --manage %s' % options.manage
             if options.settings:
                 cmd += ' --settings %s' % options.settings
             if options.merge:
                 cmd += ' --merge'
+            cmd += '\n'
             f = file('.git/hooks/post-checkout', 'w')
-            f.write('#!/bin/bash\n')
-            f.write('\n')
+            f.write('#!/bin/bash\n\n')
+            f.write('which django-south-compass &> /dev/null\n')
+            f.write('if [ $? -eq 0 ]\n')
+            f.write('then\n')
             f.write(cmd)
-            f.write('\n')
+            f.write('else\n')
+            f.write("  echo django-south-compass not available can\\'t"
+                    ' auto apply the migration\n')
+            f.write('fi\n')
             f.close()
             os.system('chmod +x .git/hooks/post-checkout')
             os.system('git config alias.rdiff "!django-south-compass '
