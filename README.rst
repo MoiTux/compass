@@ -62,9 +62,10 @@ License
 Bug report and Help
 -------------------
 
-For bug reports, open a github ticket. Patches gratefully accepted. Need help? `Contact us here`_
+For bug reports, open a github ticket. Patches gratefully accepted.
+Need help? `Contact us here`_
 
-.. _contact us here: http://agiliq.com/contactus
+.. _contact us here: https://github.com/MoiTux/compass
 
 Thanks
 ------
