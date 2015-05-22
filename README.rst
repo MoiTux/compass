@@ -67,6 +67,12 @@ Need help? `Contact us here`_
 
 .. _contact us here: https://github.com/MoiTux/compass
 
+Warning
+-------
+
+This fork do thing in way you can lose data (hard rest)
+If you have uncommited file stash them before checkout/merge/rebase
+
 Thanks
 ------
 
